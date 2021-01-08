@@ -3,9 +3,10 @@ NOTE: This example no longer works on OSX starting in 10.10 (Yosemite). Apple ha
 */
 
 var bleno = require('bleno');
-var BatteryService = require('./battery-service');
 
-var primaryService = new BatteryService();
+var MirrorService = require('./mirror-service');
+
+var primaryService = new MirrorService();
 
 bleno.on('stateChange', function(state) {
   console.log('on -> stateChange: ' + state);

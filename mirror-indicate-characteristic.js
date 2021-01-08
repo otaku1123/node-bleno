@@ -10,39 +10,58 @@ var Characteristic = bleno.Characteristic;
 var MirrorIndicateCharacteristic = function() {
   MirrorIndicateCharacteristic.super_.call(this, {
     uuid: '4042001-772f-4fcf-8e98-df2374405b62',
-      properties: ['read', 'write', 'notify'],
-      value: null,
+    properties: ['read', 'write', 'notify'],
+    value: null,
     descriptors: [
       new Descriptor({
         uuid: '4042002-772f-4fcf-8e98-df2374405b62',
         value: 'Mirror indicate[start, stop, play, pause]'
       })
-	/*
-      new Descriptor({
-        uuid: '2904',
-        value: new Buffer([0x04, 0x01, 0x27, 0xAD, 0x01, 0x00, 0x00 ]) // maybe 12 0xC unsigned 8 bit
-      })
-	*/
     ]
   });
+
+    this._value = new Buffer(0);
+    this._updateValueCallback = null;
+
 };
 
 util.inherits(MirrorIndicateCharacteristic, Characteristic);
 
 MirrorIndicateCharacteristic.prototype.onReadRequest = function(offset, callback) {
-  if (os.platform() === 'darwin') {
-    exec('pmset -g batt', function (error, stdout, stderr) {
-      var data = stdout.toString();
-      // data - 'Now drawing from \'Battery Power\'\n -InternalBattery-0\t95%; discharging; 4:11 remaining\n'
-      var percent = data.split('\t')[1].split(';')[0];
-      console.log(percent);
-      percent = parseInt(percent, 10);
-      callback(this.RESULT_SUCCESS, new Buffer([percent]));
-    });
-  } else {
-    // return hardcoded value
-    callback(this.RESULT_SUCCESS, new Buffer([98]));
+    if (os.platform() === 'darwin') {
+	callback(this.RESULT_SUCCESS, this._value);
+    } else {
+	callback(this.RESULT_SUCCESS, this._value);
   }
+};
+
+MirrorIndicateCharacteristic.prototype.onWriteRequest = function(data, offset, withoutResponse, callback) {
+
+    this._value = data;
+
+    if (os.platform() == 'darwin') {
+	console.log('request write: ' + this._value.toString('hex'));
+    }
+
+  if (this._updateValueCallback) {
+    console.log(':MirrorIndicateCharacteristic - onWriteRequest: notifying');
+
+    this._updateValueCallback(this._value);
+  }
+
+    callback(this.RESULT_SUCCESS);
+}
+
+MirrorIndicateCharacteristic.prototype.onSubscribe = function(maxValueSize, updateValueCallback) {
+  console.log('MirrorIndicateCharacteristic - onSubscribe');
+
+  this._updateValueCallback = updateValueCallback;
+};
+
+MirrorIndicateCharacteristic.prototype.onUnsubscribe = function() {
+  console.log('MirrorIndicateCharacteristic - onUnsubscribe');
+
+  this._updateValueCallback = null;
 };
 
 module.exports = MirrorIndicateCharacteristic;
